@@ -1,8 +1,12 @@
-/* ---------------------------
-   Mock invite DB (visual only)
-   Later we will replace this with Google Apps Script + Sheets
----------------------------- */
+/* =========================================
+   VISUALIZATION-ONLY PROTOTYPE
+   - URL MUST contain ?code=XXXX
+   - No manual code entry on page
+   - Clicking "Open Invitation" opens envelope,
+     validates code (mock), then reveals site
+========================================= */
 
+/* ---------- Mock Events ---------- */
 const EVENTS = {
   E1: {
     id: "E1",
@@ -46,20 +50,31 @@ const EVENTS = {
   }
 };
 
-// Example codes for testing visuals
+/* ---------- Mock Invites (test codes) ---------- */
 const INVITES = {
   "ABC123": { family: "Zariwala Family", maxGuests: 4, allowed: ["E1","E2","E3","E4"] },
   "FAM001": { family: "Jetpurwala Family", maxGuests: 6, allowed: ["E2","E3","E4"] },
   "ONEFUNC": { family: "Friends (Reception Only)", maxGuests: 2, allowed: ["E1"] }
 };
 
-const SESSION_KEY = "wedding_visual_session_v1";
+const SESSION_KEY = "wedding_visual_session_v2";
 
-/* ---------------------------
-   Helpers
----------------------------- */
+/* ---------- Helpers ---------- */
 const $ = (sel) => document.querySelector(sel);
 const $$ = (sel) => Array.from(document.querySelectorAll(sel));
+
+function escapeHtml(s){
+  return String(s)
+    .replaceAll("&","&amp;")
+    .replaceAll("<","&lt;")
+    .replaceAll(">","&gt;")
+    .replaceAll('"',"&quot;")
+    .replaceAll("'","&#039;");
+}
+
+function mapsLink(query){
+  return `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(query)}`;
+}
 
 function toast(msg){
   const t = $("#toast");
@@ -67,10 +82,6 @@ function toast(msg){
   t.classList.remove("hidden");
   clearTimeout(toast._t);
   toast._t = setTimeout(()=> t.classList.add("hidden"), 2600);
-}
-
-function mapsLink(query){
-  return `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(query)}`;
 }
 
 function getCodeFromUrl(){
@@ -99,50 +110,21 @@ function clearSession(){
   localStorage.removeItem(SESSION_KEY);
 }
 
-function showApp(){
+/* ---------- UI: Show/Hide ---------- */
+function revealApp(){
   $("#lockScreen").classList.add("hidden");
   $("#app").classList.remove("hidden");
+  $("#app").classList.add("visible");
 }
 
-function showLock(){
+function showLock(message){
   $("#app").classList.add("hidden");
+  $("#app").classList.remove("visible");
   $("#lockScreen").classList.remove("hidden");
+  $("#lockStatus").textContent = message || "";
 }
 
-/* ---------------------------
-   Unlock flow
----------------------------- */
-async function unlock(code){
-  const status = $("#lockStatus");
-  const env = $("#envelope");
-  status.textContent = "Validating invite…";
-  env.classList.add("open");
-
-  // tiny delay for the animation to feel intentional
-  await new Promise(r => setTimeout(r, 520));
-
-  const invite = INVITES[code];
-  if(!invite){
-    env.classList.remove("open");
-    status.textContent = "Invalid code. Please check your link/code.";
-    return;
-  }
-
-  setSession({
-    code,
-    family: invite.family,
-    maxGuests: invite.maxGuests,
-    allowed: invite.allowed
-  });
-
-  status.textContent = "Unlocked ✅";
-  toast("Unlocked ✅");
-  boot();
-}
-
-/* ---------------------------
-   Routing (hash routes)
----------------------------- */
+/* ---------- Routing ---------- */
 function setActiveNav(route){
   $$(".navlink").forEach(a => {
     a.classList.toggle("active", a.dataset.route === route);
@@ -178,13 +160,15 @@ function attachNav(){
   $("#lockBtn").addEventListener("click", () => {
     clearSession();
     toast("Locked 🔒");
-    showLock();
+    location.hash = "#home";
+    // Show lock with a message that needs link again
+    showLock("This invitation is private. Please open using your unique invite link.");
+    // Disable open button until URL has code
+    $("#openInviteBtn").disabled = true;
   });
 }
 
-/* ---------------------------
-   Render events based on invite
----------------------------- */
+/* ---------- Render Events ---------- */
 function renderEvents(session){
   const list = $("#eventsList");
   list.innerHTML = "";
@@ -214,11 +198,14 @@ function renderEvents(session){
     `;
     list.appendChild(div);
   });
+
+  // Re-bind quick RSVP buttons inside events after render
+  list.querySelectorAll("[data-go='rsvp']").forEach(btn => {
+    btn.addEventListener("click", () => showRoute("rsvp"));
+  });
 }
 
-/* ---------------------------
-   RSVP visualization (per-event counts)
----------------------------- */
+/* ---------- RSVP (visual only) ---------- */
 function buildCountOptions(max){
   const cap = Math.max(1, Number(max || 1));
   let html = `<option value="0">Guests: 0</option>`;
@@ -254,11 +241,13 @@ function renderRsvpEvents(session){
     wrap.appendChild(row);
   });
 
+  // Toggle counts when checked
   wrap.addEventListener("change", (e) => {
     if(e.target.classList.contains("ev-check")){
       const evId = e.target.getAttribute("data-ev");
       const sel = wrap.querySelector(`.ev-count[data-ev="${evId}"]`);
       const on = e.target.checked;
+      if(!sel) return;
       sel.disabled = !on;
       if(!on) sel.value = "0";
       if(on && sel.value === "0") sel.value = "1";
@@ -266,7 +255,7 @@ function renderRsvpEvents(session){
   });
 }
 
-function hookRsvpUI(session){
+function hookRsvpUI(){
   const attendance = $("#rsvpAttendance");
   const details = $("#rsvpDetails");
   const status = $("#rsvpStatus");
@@ -275,7 +264,7 @@ function hookRsvpUI(session){
     const v = (attendance.value || "").toLowerCase();
     if(v === "no"){
       details.classList.add("hidden");
-      status.textContent = "If you select No, we’ll only record non-attendance.";
+      status.textContent = "If you select No, we’ll only record non-attendance (later in Sheets).";
     } else if(v === "yes" || v === "maybe"){
       details.classList.remove("hidden");
       status.textContent = "";
@@ -289,9 +278,9 @@ function hookRsvpUI(session){
   sync();
 
   $("#rsvpSave").addEventListener("click", () => {
-    const name = ($("#rsvpName").value || "").trim();
     const phone = ($("#rsvpPhone").value || "").trim();
     const att = ($("#rsvpAttendance").value || "").trim();
+    const meal = ($("#rsvpMeal").value || "").trim();
 
     if(!phone) return toast("Phone is required");
     if(!att) return toast("Select attendance");
@@ -312,76 +301,100 @@ function hookRsvpUI(session){
       counts.push(`${evId}:${cntSel ? cntSel.value : 0}`);
     });
 
-    const meal = ($("#rsvpMeal").value || "").trim();
-
     if(!chosen.length) return toast("Select at least one function");
     if(!meal) return toast("Select meal preference");
 
-    // mock "save"
     toast("Saved (mock) ✅");
     $("#rsvpStatus").textContent =
-      `Saved locally (mock): ${name || "Guest"} • ${phone} • ${att} • ${chosen.join(", ")} • ${counts.join(" | ")} • ${meal}`;
+      `Saved locally (mock): ${att} • ${chosen.join(", ")} • ${counts.join(" | ")} • ${meal}`;
   });
 }
 
-/* ---------------------------
-   Boot app
----------------------------- */
+/* ---------- Core: Boot App ---------- */
 function boot(){
   const session = getSession();
-  if(!session){
-    showLock();
-    return;
-  }
-
-  showApp();
-  attachNav();
+  if(!session) return;
 
   $("#familyBadge").textContent = session.family || "Invite";
   $("#codeBadge").textContent = `Code: ${session.code}`;
+  $("#welcomeLine").textContent = `Hi ${session.family || "there"}, we can’t wait to celebrate with you.`;
 
-  $("#welcomeLine").textContent =
-    `Hi ${session.family || "there"}, we can’t wait to celebrate with you.`;
-
+  attachNav();
   renderEvents(session);
   renderRsvpEvents(session);
-  hookRsvpUI(session);
+  hookRsvpUI();
 
-  // route from hash or default
   const route = (window.location.hash || "#home").replace("#","");
   showRoute(route);
 }
 
-function escapeHtml(s){
-  return String(s)
-    .replaceAll("&","&amp;")
-    .replaceAll("<","&lt;")
-    .replaceAll(">","&gt;")
-    .replaceAll('"',"&quot;")
-    .replaceAll("'","&#039;");
+/* ---------- Unlock Flow (URL code only) ---------- */
+async function openAndValidate(code){
+  const status = $("#lockStatus");
+  const env = $("#envelope");
+  const btn = $("#openInviteBtn");
+
+  status.textContent = "";
+  btn.disabled = true;
+
+  // Open envelope
+  env.classList.add("open");
+
+  // Wait for animation
+  await new Promise(r => setTimeout(r, 900));
+
+  status.textContent = "Validating invite…";
+
+  // Validate (mock DB for visualization)
+  const invite = INVITES[code];
+  if(!invite){
+    status.textContent = "Invalid link. Please use the invite link shared with you.";
+    btn.disabled = false;
+    return;
+  }
+
+  setSession({
+    code,
+    family: invite.family,
+    maxGuests: invite.maxGuests,
+    allowed: invite.allowed
+  });
+
+  revealApp();
+  toast("Welcome ✨");
+  boot();
+
+  // Optional: reduce accidental sharing by removing ?code from address bar
+  // (Keeps the session active; user can still refresh without code for 6 hours)
+  try{
+    const cleanUrl = new URL(window.location.href);
+    cleanUrl.searchParams.delete("code");
+    window.history.replaceState({}, "", cleanUrl.toString());
+  }catch{}
 }
 
-/* ---------------------------
-   Init
----------------------------- */
+/* ---------- Init ---------- */
 window.addEventListener("load", () => {
-  const session = getSession();
-  if(session){
+  const existing = getSession();
+  if(existing){
+    revealApp();
     boot();
     return;
   }
 
-  // No session: allow unlock via URL code
-  const codeFromUrl = getCodeFromUrl();
-  if(codeFromUrl){
-    unlock(codeFromUrl);
-  } else {
-    $("#lockStatus").textContent = "Open your unique invite link to unlock.";
+  // Must have code in URL
+  const code = getCodeFromUrl();
+  const status = $("#lockStatus");
+  const btn = $("#openInviteBtn");
+
+  if(!code){
+    status.textContent = "This invitation is private. Please open using your unique invite link.";
+    btn.disabled = true;
+    return;
   }
 
-  $("#unlockBtn").addEventListener("click", () => {
-    const typed = ($("#codeInput").value || "").trim().toUpperCase();
-    if(!typed) return $("#lockStatus").textContent = "Please enter a code.";
-    unlock(typed);
-  });
+  status.textContent = "Ready to open ✉️";
+  btn.disabled = false;
+
+  btn.addEventListener("click", () => openAndValidate(code), { once: true });
 });
