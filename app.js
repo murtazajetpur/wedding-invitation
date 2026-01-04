@@ -1,400 +1,163 @@
 /* =========================================================
-   Video-style UI + REAL animations
-   - FULL LOCK
-   - URL-only code: ?code=XXXX
-   - No code input
-   - Reveal-on-scroll
-   - Lock open animation
+   Scroll Gate Envelope (GSAP + ScrollTrigger)
+   - Invite-only via URL ?code=XXXX (no code input)
+   - Hero scroll drives envelope open (scrub)
+   - When fully open -> snap once to #contentStart
+   - After snap -> natural scrolling (kill ScrollTrigger, no interception)
+   - Tap center icon -> animate open -> snap (same pipeline)
 ========================================================= */
 
-const EVENTS = {
-  E1: {
-    id: "E1",
-    title: "Bride Main Reception",
-    date: "11 Nov 2026",
-    time: "7:00 PM IST",
-    venue: "Country Club Hall",
-    address: "Country Club, near Nyati Serenity, Nyati County, Undri, Pune, Maharashtra",
-    dress: "Western",
-    mapsQuery: "Country Club near Nyati Serenity Nyati County Undri Pune Maharashtra"
-  },
-  E2: {
-    id: "E2",
-    title: "Mehendi & Sangeet",
-    date: "13 Nov 2026",
-    time: "4:00 PM IST (Mehendi) • 7:00 PM IST (Sangeet)",
-    venue: "Sanskruti Banquet",
-    address: "XR55+25V, Dadi Seth Road, near Hotel Regal Palace, Grant Road West, Mumbai, Maharashtra 400007",
-    dress: "Traditional",
-    mapsQuery: "Sanskruti Banquet Dadi Seth Road Grant Road West Mumbai"
-  },
-  E3: {
-    id: "E3",
-    title: "Darees",
-    date: "14 Nov 2026",
-    time: "4:00 PM IST (Ladies) • 7:00 PM IST (Gents)",
-    venue: "Al Saadah Hall",
-    address: "7th Floor, Khara Tank Rd, Bhendi Bazaar, Mumbai, Maharashtra 400003",
-    dress: "Bohra Clothes",
-    mapsQuery: "Al Saadah Hall Khara Tank Rd Bhendi Bazaar Mumbai"
-  },
-  E4: {
-    id: "E4",
-    title: "Groom Min Reception (Walima)",
-    date: "15 Nov 2026",
-    time: "7:00 PM IST",
-    venue: "Najam Baug",
-    address: "Samantbhai Nanji Marg, Noor Baug, Dongri, Mumbai, Maharashtra 400009",
-    dress: "Traditional",
-    mapsQuery: "Najam Baug Samantbhai Nanji Marg Dongri Mumbai"
-  }
-};
+gsap.registerPlugin(ScrollTrigger);
 
-// test codes (later: Google Sheet)
-const INVITES = {
-  "ABC123": { family: "Zariwala Family", maxGuests: 4, allowed: ["E1","E2","E3","E4"] },
-  "FAM001": { family: "Jetpurwala Family", maxGuests: 6, allowed: ["E2","E3","E4"] },
-  "ONEFUNC": { family: "Friends (Reception Only)", maxGuests: 2, allowed: ["E1"] }
-};
+// Test codes (replace later with Sheet lookup)
+const INVITES = new Set(["ABC123", "FAM001", "ONEFUNC"]);
 
-const SESSION_KEY = "wedding_invite_session_videoStyle_anim_v2";
+const lockEl = document.getElementById("lock");
+const appEl  = document.getElementById("app");
+const lockStatus = document.getElementById("lockStatus");
 
-const $ = (sel) => document.querySelector(sel);
-const $$ = (sel) => Array.from(document.querySelectorAll(sel));
+const openBtn = document.getElementById("openBtn");
+const hero = document.getElementById("hero");
+const contentStart = document.getElementById("contentStart");
 
-function mapsLink(query){
-  return `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(query)}`;
-}
+// Envelope parts
+const flap = document.querySelector(".flap");
+const card = document.querySelector(".card");
+const shadow = document.querySelector(".shadow");
+const blobs = document.querySelectorAll(".blob");
 
-function toast(msg){
-  const t = $("#toast");
-  t.textContent = msg;
-  t.classList.remove("hidden");
-  clearTimeout(toast._t);
-  toast._t = setTimeout(()=> t.classList.add("hidden"), 2400);
-}
+let isOpened = false;
+let isSnapped = false;
+let isOpeningViaTap = false;
 
 function getCodeFromUrl(){
-  const url = new URL(window.location.href);
-  return (url.searchParams.get("code") || "").trim().toUpperCase();
-}
-
-function setSession(obj){
-  localStorage.setItem(SESSION_KEY, JSON.stringify({
-    ...obj,
-    expiresAt: Date.now() + 6*60*60*1000
-  }));
-}
-function getSession(){
-  try{
-    const raw = localStorage.getItem(SESSION_KEY);
-    if(!raw) return null;
-    const s = JSON.parse(raw);
-    if(s.expiresAt && Date.now() > s.expiresAt) return null;
-    return s;
-  }catch{ return null; }
-}
-function clearSession(){
-  localStorage.removeItem(SESSION_KEY);
+  const u = new URL(window.location.href);
+  return (u.searchParams.get("code") || "").trim().toUpperCase();
 }
 
 function showLock(msg){
-  $("#app").classList.add("hidden");
-  $("#lockScreen").classList.remove("hidden");
-  $("#lockStatus").textContent = msg || "";
+  lockEl.classList.remove("hidden");
+  appEl.classList.add("hidden");
+  lockStatus.textContent = msg || "";
 }
+
 function showApp(){
-  $("#lockScreen").classList.add("hidden");
-  $("#app").classList.remove("hidden");
+  lockEl.classList.add("hidden");
+  appEl.classList.remove("hidden");
 }
 
-function escapeHtml(s){
-  return String(s)
-    .replaceAll("&","&amp;").replaceAll("<","&lt;").replaceAll(">","&gt;")
-    .replaceAll('"',"&quot;").replaceAll("'","&#039;");
+// Smooth snap helper
+function snapToContent(){
+  if (isSnapped) return;
+  isSnapped = true;
+  contentStart.scrollIntoView({ behavior: "smooth", block: "start" });
 }
 
-/* ---------- Reveal-on-scroll ---------- */
-function initReveals(){
-  const els = $$(".reveal");
-  if(!els.length) return;
+// Build a single animation timeline representing progress 0->1
+const tl = gsap.timeline({ paused: true });
 
-  // If user has reduce motion -> reveal immediately
-  const reduce = window.matchMedia && window.matchMedia("(prefers-reduced-motion: reduce)").matches;
-  if(reduce){
-    els.forEach(el => el.classList.add("in"));
-    return;
-  }
+// Optional: subtle background parallax
+tl.to(blobs[0], { x: 10, y: -8, duration: 1, ease: "none" }, 0);
+tl.to(blobs[1], { x: -10, y: -6, duration: 1, ease: "none" }, 0);
+tl.to(blobs[2], { y: 10, duration: 1, ease: "none" }, 0);
 
-  const io = new IntersectionObserver((entries) => {
-    entries.forEach(e => {
-      if(e.isIntersecting){
-        e.target.classList.add("in");
-        io.unobserve(e.target);
+// Card rises out
+tl.to(card, { y: -110, duration: 1, ease: "none" }, 0);
+
+// Flap rotates open
+tl.to(flap, { rotateX: 160, duration: 1, transformPerspective: 900, ease: "none" }, 0);
+
+// Shadow expands slightly (depth)
+tl.to(shadow, { scale: 1.12, opacity: 0.35, duration: 1, ease: "none" }, 0);
+
+// After open, center button can fade a bit
+tl.to(openBtn, { opacity: 0.45, scale: 0.98, duration: 1, ease: "none" }, 0);
+
+// ScrollTrigger gate: adds extra scroll distance to drive the open
+let st;
+
+function setupGate(){
+  // IMPORTANT:
+  // - pin hero while scrubbing
+  // - add "end" distance so user can scroll to open
+  st = ScrollTrigger.create({
+    trigger: hero,
+    start: "top top",
+    end: "+=900",           // how much scroll drives the open (tune this)
+    pin: true,
+    scrub: 0.7,             // smoothness (video-like)
+    anticipatePin: 1,
+    onUpdate(self){
+      if (isOpened) return;
+      // Drive timeline progress from scroll progress
+      tl.progress(self.progress);
+
+      // When near end, snap once and switch to normal
+      if (self.progress >= 0.98 && !isOpened){
+        isOpened = true;
+
+        // Let the last tiny bit finish
+        gsap.to(tl, { progress: 1, duration: 0.18, ease: "power2.out" });
+
+        // Snap and then kill the gate so scroll becomes normal
+        snapToContent();
+
+        // Kill after snap starts (small delay avoids jump)
+        setTimeout(() => {
+          try {
+            st.kill(true);
+          } catch {}
+        }, 450);
       }
-    });
-  }, { threshold: 0.12 });
-
-  els.forEach(el => io.observe(el));
-}
-
-/* ---------- bottom nav scroll ---------- */
-function bindNav(){
-  const map = {
-    cover: $("#s-cover"),
-    events: $("#s-events"),
-    rsvp: $("#s-rsvp"),
-    gallery: $("#s-gallery"),
-  };
-
-  $$(".bn").forEach(btn => {
-    btn.addEventListener("click", () => {
-      map[btn.dataset.go]?.scrollIntoView({behavior:"smooth", block:"start"});
-    });
-  });
-
-  // active nav while scrolling
-  const screens = [
-    { id:"cover", el: $("#s-cover") },
-    { id:"events", el: $("#s-events") },
-    { id:"rsvp", el: $("#s-rsvp") },
-    { id:"gallery", el: $("#s-gallery") },
-  ];
-
-  const io = new IntersectionObserver((entries) => {
-    const best = entries
-      .filter(e => e.isIntersecting)
-      .sort((a,b) => b.intersectionRatio - a.intersectionRatio)[0];
-    if(!best) return;
-    const found = screens.find(s => s.el === best.target);
-    if(!found) return;
-    $$(".bn").forEach(b => b.classList.toggle("active", b.dataset.go === found.id));
-  }, { threshold: [0.55, 0.65, 0.75] });
-
-  screens.forEach(s => s.el && io.observe(s.el));
-
-  // buttons inside cover
-  $$("[data-go]").forEach(b => {
-    b.addEventListener("click", () => map[b.dataset.go]?.scrollIntoView({behavior:"smooth", block:"start"}));
-  });
-
-  $("#lockBtn").addEventListener("click", () => {
-    clearSession();
-    toast("Locked 🔒");
-    showLock("This invitation is private. Please open using your unique invite link.");
-    $("#openInviteBtn").disabled = true;
-  });
-}
-
-/* ---------- events ---------- */
-function renderEvents(session){
-  const list = $("#eventsList");
-  list.innerHTML = "";
-
-  const allowed = (session.allowed || []).map(id => EVENTS[id]).filter(Boolean);
-  allowed.forEach(ev => {
-    const card = document.createElement("div");
-    card.className = "card reveal";
-    card.innerHTML = `
-      <h3>${escapeHtml(ev.title)}</h3>
-      <div class="meta">
-        <span class="pilltag">${escapeHtml(ev.date)}</span>
-        <span class="pilltag">${escapeHtml(ev.time)}</span>
-        <span class="pilltag">Dress: ${escapeHtml(ev.dress)}</span>
-      </div>
-      <div class="addr"><b>${escapeHtml(ev.venue)}</b><br/>${escapeHtml(ev.address)}</div>
-      <div class="row">
-        <a class="pill" target="_blank" rel="noopener" href="${mapsLink(ev.mapsQuery)}">Open maps</a>
-        <button class="pill primary" data-go="rsvp">RSVP</button>
-      </div>
-    `;
-    list.appendChild(card);
-  });
-
-  list.querySelectorAll("[data-go='rsvp']").forEach(b => {
-    b.addEventListener("click", () => $("#s-rsvp").scrollIntoView({behavior:"smooth"}));
-  });
-}
-
-/* ---------- RSVP ---------- */
-function buildCountOptions(max){
-  const cap = Math.max(1, Number(max || 1));
-  let html = `<option value="0">Guests: 0</option>`;
-  for(let i=1;i<=cap;i++) html += `<option value="${i}">Guests: ${i}</option>`;
-  return html;
-}
-
-function renderRsvpEvents(session){
-  const wrap = $("#rsvpEvents");
-  wrap.innerHTML = "";
-  $("#maxGuests").textContent = session.maxGuests ?? "-";
-
-  const allowed = (session.allowed || []).map(id => EVENTS[id]).filter(Boolean);
-  allowed.forEach(ev => {
-    const row = document.createElement("div");
-    row.className = "ev-row";
-    row.innerHTML = `
-      <div class="ev-left">
-        <div class="ev-title">${escapeHtml(ev.title)}</div>
-        <div class="ev-sub">${escapeHtml(ev.date)} • ${escapeHtml(ev.time)}</div>
-      </div>
-      <div class="ev-right">
-        <input type="checkbox" class="ev-check" data-ev="${ev.id}" aria-label="Attend ${escapeHtml(ev.title)}"/>
-        <select class="ev-count" data-ev="${ev.id}" disabled>
-          ${buildCountOptions(session.maxGuests)}
-        </select>
-      </div>
-    `;
-    wrap.appendChild(row);
-  });
-
-  wrap.addEventListener("change", (e) => {
-    if(e.target.classList.contains("ev-check")){
-      const evId = e.target.getAttribute("data-ev");
-      const sel = wrap.querySelector(`.ev-count[data-ev="${evId}"]`);
-      const on = e.target.checked;
-      if(!sel) return;
-      sel.disabled = !on;
-      if(!on) sel.value = "0";
-      if(on && sel.value === "0") sel.value = "1";
     }
   });
 }
 
-function bindAttendanceUI(){
-  const hidden = $("#rsvpAttendance");
-  const details = $("#rsvpDetails");
-  const help = $("#attHelp");
+// Tap shortcut: complete the same open pipeline
+function openViaTap(){
+  if (isOpened || isOpeningViaTap) return;
+  isOpeningViaTap = true;
 
-  function setAttendance(v){
-    hidden.value = v;
-    $$(".seg-btn").forEach(b => b.classList.toggle("active", b.dataset.att === v));
-
-    if(v === "No"){
-      details.classList.add("hidden");
-      help.textContent = "No worries — we’ll mark you as not attending.";
-    } else if(v === "Yes" || v === "Maybe"){
-      details.classList.remove("hidden");
-      help.textContent = v === "Maybe" ? "You can update later." : "";
-    } else {
-      details.classList.add("hidden");
-      help.textContent = "";
+  // animate timeline to end with premium ease
+  gsap.to(tl, {
+    progress: 1,
+    duration: 0.7,
+    ease: "expo.out",
+    onComplete(){
+      isOpened = true;
+      snapToContent();
+      setTimeout(() => {
+        if (st) {
+          try { st.kill(true); } catch {}
+        }
+        isOpeningViaTap = false;
+      }, 450);
     }
-  }
-
-  $$(".seg-btn").forEach(btn => btn.addEventListener("click", () => setAttendance(btn.dataset.att)));
-  setAttendance("");
-}
-
-function bindRsvpSave(){
-  $("#rsvpSave").addEventListener("click", () => {
-    const name = ($("#rsvpName").value || "").trim();
-    const phone = ($("#rsvpPhone").value || "").trim();
-    const att = ($("#rsvpAttendance").value || "").trim();
-    const meal = ($("#rsvpMeal").value || "").trim();
-    const status = $("#rsvpStatus");
-    status.textContent = "";
-
-    if(!phone){ toast("Phone is required"); return; }
-    if(!att){ toast("Select attendance"); return; }
-
-    if(att === "No"){
-      toast("Saved (mock) ✅");
-      status.textContent = "Recorded as Not Attending (mock).";
-      return;
-    }
-
-    const chosen = [];
-    const counts = [];
-    $$("#rsvpEvents .ev-check").forEach(ch => {
-      if(!ch.checked) return;
-      const evId = ch.dataset.ev;
-      const sel = $(`#rsvpEvents .ev-count[data-ev="${evId}"]`);
-      chosen.push(evId);
-      counts.push(`${evId}:${sel ? sel.value : 0}`);
-    });
-
-    if(!chosen.length){ toast("Select at least one function"); return; }
-    if(!meal){ toast("Select meal preference"); return; }
-
-    toast("Saved (mock) ✅");
-    status.textContent = `Saved (mock): ${name || "Guest"} • ${att} • ${counts.join(" | ")} • ${meal}`;
   });
 }
 
-/* ---------- boot ---------- */
-function boot(session){
-  renderEvents(session);
-  renderRsvpEvents(session);
-  bindNav();
-  bindAttendanceUI();
-  bindRsvpSave();
-
-  // initialize reveals after dynamic event cards are inserted
-  initReveals();
-}
-
-/* ---------- unlock flow with lock animation ---------- */
-async function openAndValidate(code){
-  const status = $("#lockStatus");
-  const btn = $("#openInviteBtn");
-  const lock = $("#lockScreen");
-
-  status.textContent = "";
-  btn.disabled = true;
-
-  // Trigger lock animation
-  lock.classList.add("is-opening");
-
-  // short cinematic wait (matches CSS)
-  await new Promise(r => setTimeout(r, 700));
-
-  status.textContent = "Validating invite…";
-  await new Promise(r => setTimeout(r, 240));
-
-  const invite = INVITES[code];
-  if(!invite){
-    lock.classList.remove("is-opening");
-    status.textContent = "Invalid link. Please use the invite link shared with you.";
-    btn.disabled = false;
-    return;
-  }
-
-  const session = { code, family: invite.family, maxGuests: invite.maxGuests, allowed: invite.allowed };
-  setSession(session);
-
-  // Switch to app
-  showApp();
-  toast("Welcome ✨");
-  boot(session);
-
-  // Remove ?code to reduce accidental sharing
-  try{
-    const cleanUrl = new URL(window.location.href);
-    cleanUrl.searchParams.delete("code");
-    window.history.replaceState({}, "", cleanUrl.toString());
-  }catch{}
-}
-
+// Boot
 window.addEventListener("load", () => {
-  const existing = getSession();
-  if(existing){
-    showApp();
-    boot(existing);
-    return;
-  }
-
   const code = getCodeFromUrl();
-  const status = $("#lockStatus");
-  const btn = $("#openInviteBtn");
 
-  if(!code){
-    status.textContent = "This invitation is private. Please open using your unique invite link.";
-    btn.disabled = true;
+  if (!code || !INVITES.has(code)) {
+    showLock("Invalid or missing invite link. Example: ?code=ABC123");
     return;
   }
 
-  status.textContent = "Ready.";
-  btn.disabled = false;
-  btn.addEventListener("click", () => openAndValidate(code), { once: true });
+  // Hide lock, show app
+  showApp();
+
+  // Remove code from URL (optional privacy)
+  try{
+    const clean = new URL(window.location.href);
+    clean.searchParams.delete("code");
+    window.history.replaceState({}, "", clean.toString());
+  }catch{}
+
+  // Setup scroll gate
+  setupGate();
+
+  // Tap icon triggers open + snap
+  openBtn.addEventListener("click", openViaTap, { passive: true });
 });
