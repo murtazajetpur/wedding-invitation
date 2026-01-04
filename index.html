@@ -12,7 +12,7 @@
   <!-- LOCK SCREEN (FULL PRIVATE) -->
   <main id="lockScreen" class="lock">
     <div class="lock-shell">
-      <div class="lock-card">
+      <div id="lockCard" class="lock-card">
         <div class="lock-top">
           <div class="monogram">L <span class="dot">•</span> M</div>
           <div class="lock-note">Private invitation</div>
@@ -20,7 +20,7 @@
 
         <div class="lock-hero">
           <div class="lock-illo" aria-hidden="true">
-            <!-- inline SVG illustration placeholder (replace later with real art/image if you want) -->
+            <!-- inline SVG illustration placeholder -->
             <svg viewBox="0 0 900 520" role="presentation">
               <defs>
                 <linearGradient id="wash" x1="0" x2="1" y1="0" y2="1">
@@ -42,7 +42,7 @@
                 <path d="M120,380 C220,310 290,310 360,380 C430,450 520,460 620,390 C720,320 790,320 860,380" fill="none" stroke="#8aa3b5" stroke-width="4" stroke-linecap="round"/>
                 <path d="M100,120 C210,190 280,190 360,130 C440,70 530,60 630,130 C730,200 800,200 880,140" fill="none" stroke="#b58aa4" stroke-width="4" stroke-linecap="round"/>
               </g>
-              <g opacity=".75">
+              <g opacity=".8">
                 <text x="450" y="275" text-anchor="middle" font-size="42" font-family="Georgia,serif" fill="#23303a">You’re invited</text>
                 <text x="450" y="322" text-anchor="middle" font-size="18" font-family="system-ui, -apple-system, Segoe UI, Roboto, Arial" fill="#52606d">
                   Tap to open your private invitation
@@ -80,7 +80,6 @@
 
   <!-- APP (HIDDEN UNTIL VALIDATED) -->
   <main id="app" class="app hidden">
-    <!-- bottom nav like the video -->
     <nav class="bottom-nav">
       <button class="bn active" data-go="cover">Home</button>
       <button class="bn" data-go="events">Events</button>
@@ -89,9 +88,8 @@
     </nav>
 
     <section id="s-cover" class="screen snap">
-      <div class="cover-top">
+      <div class="cover-top reveal">
         <div class="cover-art" aria-hidden="true">
-          <!-- replace later with your real invite art -->
           <div class="art-frame">
             <div class="art-bloom b1"></div>
             <div class="art-bloom b2"></div>
@@ -102,7 +100,7 @@
         </div>
       </div>
 
-      <div class="cover-bottom">
+      <div class="cover-bottom reveal">
         <div class="cover-names">
           <div class="cover-serif">Lubna</div>
           <div class="cover-amp">&</div>
@@ -116,7 +114,7 @@
           <button class="pill primary" data-go="rsvp">Confirm attendance</button>
         </div>
 
-        <div class="swipe-hint">
+        <div class="swipe-hint" aria-hidden="true">
           <span class="chev">⌄</span>
           <span class="chev">⌄</span>
           <span class="chev">⌄</span>
@@ -125,7 +123,7 @@
     </section>
 
     <section id="s-events" class="screen snap">
-      <header class="screen-head">
+      <header class="screen-head reveal">
         <div>
           <h2 class="h-serif">Your events</h2>
           <p class="muted">Only the functions you’re invited to are visible.</p>
@@ -137,14 +135,14 @@
     </section>
 
     <section id="s-rsvp" class="screen snap">
-      <header class="screen-head">
+      <header class="screen-head reveal">
         <div>
           <h2 class="h-serif">RSVP</h2>
-          <p class="muted">Simple & clean — like the video. (Submission is mocked for now)</p>
+          <p class="muted">Simple & clean — (Submission is mocked for now)</p>
         </div>
       </header>
 
-      <div class="form">
+      <div class="form reveal">
         <div class="field">
           <label>Name</label>
           <input id="rsvpName" placeholder="Your name"/>
@@ -190,14 +188,14 @@
     </section>
 
     <section id="s-gallery" class="screen snap">
-      <header class="screen-head">
+      <header class="screen-head reveal">
         <div>
           <h2 class="h-serif">Gallery</h2>
           <p class="muted">We’ll plug photos here later.</p>
         </div>
       </header>
 
-      <div class="gallery">
+      <div class="gallery reveal">
         <div class="ph">Photo</div><div class="ph">Photo</div><div class="ph">Photo</div>
         <div class="ph">Photo</div><div class="ph">Photo</div><div class="ph">Photo</div>
       </div>
