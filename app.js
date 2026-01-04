@@ -1,14 +1,10 @@
 /* =========================================================
-   VIDEO-STYLE UI (static, GitHub Pages friendly)
+   Video-style UI + REAL animations
    - FULL LOCK
    - URL-only code: ?code=XXXX
-   - No code input on site
-   - Show events based on invite
-   - RSVP: Attendance Yes/Maybe/No
-       - If No => hide event + meal section
-   - Meal preference: Veg / Non-veg (only)
-   - Count per event (max per function = maxGuests)
-   - Submission mocked for now
+   - No code input
+   - Reveal-on-scroll
+   - Lock open animation
 ========================================================= */
 
 const EVENTS = {
@@ -54,14 +50,14 @@ const EVENTS = {
   }
 };
 
-/* test codes (replace later with Google Sheet source) */
+// test codes (later: Google Sheet)
 const INVITES = {
   "ABC123": { family: "Zariwala Family", maxGuests: 4, allowed: ["E1","E2","E3","E4"] },
   "FAM001": { family: "Jetpurwala Family", maxGuests: 6, allowed: ["E2","E3","E4"] },
   "ONEFUNC": { family: "Friends (Reception Only)", maxGuests: 2, allowed: ["E1"] }
 };
 
-const SESSION_KEY = "wedding_invite_session_videoStyle_v1";
+const SESSION_KEY = "wedding_invite_session_videoStyle_anim_v2";
 
 const $ = (sel) => document.querySelector(sel);
 const $$ = (sel) => Array.from(document.querySelectorAll(sel));
@@ -112,6 +108,36 @@ function showApp(){
   $("#app").classList.remove("hidden");
 }
 
+function escapeHtml(s){
+  return String(s)
+    .replaceAll("&","&amp;").replaceAll("<","&lt;").replaceAll(">","&gt;")
+    .replaceAll('"',"&quot;").replaceAll("'","&#039;");
+}
+
+/* ---------- Reveal-on-scroll ---------- */
+function initReveals(){
+  const els = $$(".reveal");
+  if(!els.length) return;
+
+  // If user has reduce motion -> reveal immediately
+  const reduce = window.matchMedia && window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+  if(reduce){
+    els.forEach(el => el.classList.add("in"));
+    return;
+  }
+
+  const io = new IntersectionObserver((entries) => {
+    entries.forEach(e => {
+      if(e.isIntersecting){
+        e.target.classList.add("in");
+        io.unobserve(e.target);
+      }
+    });
+  }, { threshold: 0.12 });
+
+  els.forEach(el => io.observe(el));
+}
+
 /* ---------- bottom nav scroll ---------- */
 function bindNav(){
   const map = {
@@ -123,12 +149,11 @@ function bindNav(){
 
   $$(".bn").forEach(btn => {
     btn.addEventListener("click", () => {
-      const key = btn.dataset.go;
-      map[key]?.scrollIntoView({behavior:"smooth", block:"start"});
+      map[btn.dataset.go]?.scrollIntoView({behavior:"smooth", block:"start"});
     });
   });
 
-  // active state while scrolling
+  // active nav while scrolling
   const screens = [
     { id:"cover", el: $("#s-cover") },
     { id:"events", el: $("#s-events") },
@@ -137,11 +162,11 @@ function bindNav(){
   ];
 
   const io = new IntersectionObserver((entries) => {
-    const vis = entries
+    const best = entries
       .filter(e => e.isIntersecting)
       .sort((a,b) => b.intersectionRatio - a.intersectionRatio)[0];
-    if(!vis) return;
-    const found = screens.find(s => s.el === vis.target);
+    if(!best) return;
+    const found = screens.find(s => s.el === best.target);
     if(!found) return;
     $$(".bn").forEach(b => b.classList.toggle("active", b.dataset.go === found.id));
   }, { threshold: [0.55, 0.65, 0.75] });
@@ -150,13 +175,9 @@ function bindNav(){
 
   // buttons inside cover
   $$("[data-go]").forEach(b => {
-    b.addEventListener("click", () => {
-      const key = b.dataset.go;
-      map[key]?.scrollIntoView({behavior:"smooth", block:"start"});
-    });
+    b.addEventListener("click", () => map[b.dataset.go]?.scrollIntoView({behavior:"smooth", block:"start"}));
   });
 
-  // lock
   $("#lockBtn").addEventListener("click", () => {
     clearSession();
     toast("Locked 🔒");
@@ -165,21 +186,15 @@ function bindNav(){
   });
 }
 
-/* ---------- render events ---------- */
-function escapeHtml(s){
-  return String(s)
-    .replaceAll("&","&amp;").replaceAll("<","&lt;").replaceAll(">","&gt;")
-    .replaceAll('"',"&quot;").replaceAll("'","&#039;");
-}
-
+/* ---------- events ---------- */
 function renderEvents(session){
   const list = $("#eventsList");
   list.innerHTML = "";
-  const allowed = (session.allowed || []).map(id => EVENTS[id]).filter(Boolean);
 
+  const allowed = (session.allowed || []).map(id => EVENTS[id]).filter(Boolean);
   allowed.forEach(ev => {
     const card = document.createElement("div");
-    card.className = "card";
+    card.className = "card reveal";
     card.innerHTML = `
       <h3>${escapeHtml(ev.title)}</h3>
       <div class="meta">
@@ -268,7 +283,7 @@ function bindAttendanceUI(){
   }
 
   $$(".seg-btn").forEach(btn => btn.addEventListener("click", () => setAttendance(btn.dataset.att)));
-  setAttendance(""); // initial
+  setAttendance("");
 }
 
 function bindRsvpSave(){
@@ -278,7 +293,6 @@ function bindRsvpSave(){
     const att = ($("#rsvpAttendance").value || "").trim();
     const meal = ($("#rsvpMeal").value || "").trim();
     const status = $("#rsvpStatus");
-
     status.textContent = "";
 
     if(!phone){ toast("Phone is required"); return; }
@@ -315,42 +329,46 @@ function boot(session){
   bindNav();
   bindAttendanceUI();
   bindRsvpSave();
+
+  // initialize reveals after dynamic event cards are inserted
+  initReveals();
 }
 
-/* ---------- unlock flow ---------- */
+/* ---------- unlock flow with lock animation ---------- */
 async function openAndValidate(code){
   const status = $("#lockStatus");
   const btn = $("#openInviteBtn");
+  const lock = $("#lockScreen");
+
   status.textContent = "";
   btn.disabled = true;
 
-  // tiny "video-like" delay (feels intentional)
-  status.textContent = "Opening…";
-  await new Promise(r => setTimeout(r, 420));
+  // Trigger lock animation
+  lock.classList.add("is-opening");
+
+  // short cinematic wait (matches CSS)
+  await new Promise(r => setTimeout(r, 700));
 
   status.textContent = "Validating invite…";
-  await new Promise(r => setTimeout(r, 320));
+  await new Promise(r => setTimeout(r, 240));
 
   const invite = INVITES[code];
   if(!invite){
+    lock.classList.remove("is-opening");
     status.textContent = "Invalid link. Please use the invite link shared with you.";
     btn.disabled = false;
     return;
   }
 
-  const session = {
-    code,
-    family: invite.family,
-    maxGuests: invite.maxGuests,
-    allowed: invite.allowed
-  };
+  const session = { code, family: invite.family, maxGuests: invite.maxGuests, allowed: invite.allowed };
   setSession(session);
 
+  // Switch to app
   showApp();
   toast("Welcome ✨");
   boot(session);
 
-  // remove ?code from address bar to reduce accidental sharing
+  // Remove ?code to reduce accidental sharing
   try{
     const cleanUrl = new URL(window.location.href);
     cleanUrl.searchParams.delete("code");
