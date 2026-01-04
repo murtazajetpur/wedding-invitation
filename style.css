@@ -26,7 +26,6 @@ body{
 
 .hidden{display:none !important;}
 .page{min-height:100%}
-
 .container{max-width:980px; margin:0 auto; padding:28px 18px 60px}
 .serif{font-family: var(--serif); letter-spacing: .2px;}
 
@@ -35,7 +34,6 @@ body{
   padding: 8px 2px;
 }
 .mark{
-  font-family: var(--serif);
   letter-spacing: .8px;
   font-size: 14px;
   opacity:.9;
@@ -222,15 +220,23 @@ a.btn{color:inherit; text-decoration:none}
 .fade-in{opacity:0; transform: translateY(10px); animation: fadeUp .7s ease forwards;}
 @keyframes fadeUp{to{opacity:1; transform: translateY(0)}}
 
-/* Envelope animation */
+/* Envelope animation (more obvious) */
 .envelope-wrap{display:flex; justify-content:center; margin: 14px 0 6px;}
 .envelope{
   width: 240px; height: 150px;
   position: relative;
-  transform: translateY(0);
-  animation: floaty 3.5s ease-in-out infinite;
+  transform: translateY(0) rotate(-1deg);
+  animation: floaty 1.6s ease-in-out infinite, sway 2.2s ease-in-out infinite;
+  will-change: transform;
 }
-@keyframes floaty{ 50%{transform: translateY(-6px)} }
+@keyframes floaty{
+  0%,100%{ transform: translateY(0) rotate(-1deg) }
+  50%{ transform: translateY(-14px) rotate(-1deg) }
+}
+@keyframes sway{
+  0%,100%{ transform: translateY(0) rotate(-1deg) }
+  50%{ transform: translateY(0) rotate(1deg) }
+}
 .env-body{
   position:absolute; inset:0;
   border-radius: 18px;
@@ -270,6 +276,24 @@ a.btn{color:inherit; text-decoration:none}
 .envelope.open .env-letter{animation: riseLetter .9s .15s ease forwards;}
 @keyframes openFlap{to{ transform: rotateX(160deg); }}
 @keyframes riseLetter{to{ transform: translateY(-44px); }}
+
+/* Button */
+.open-btn{
+  margin-top: 14px;
+  font-size: 15px;
+  letter-spacing: .3px;
+}
+
+/* Fade-in reveal for website after unlock */
+#app{
+  opacity: 0;
+  transform: translateY(10px);
+  transition: opacity .6s ease, transform .6s ease;
+}
+#app.visible{
+  opacity: 1;
+  transform: translateY(0);
+}
 
 /* Toast */
 .toast{
