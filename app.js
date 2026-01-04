@@ -1,12 +1,16 @@
-/* =========================================
-   VISUALIZATION-ONLY PROTOTYPE
-   - URL MUST contain ?code=XXXX
-   - No manual code entry on page
-   - Clicking "Open Invitation" opens envelope,
-     validates code (mock), then reveals site
-========================================= */
+/* =========================================================
+   VIDEO-STYLE UI (static, GitHub Pages friendly)
+   - FULL LOCK
+   - URL-only code: ?code=XXXX
+   - No code input on site
+   - Show events based on invite
+   - RSVP: Attendance Yes/Maybe/No
+       - If No => hide event + meal section
+   - Meal preference: Veg / Non-veg (only)
+   - Count per event (max per function = maxGuests)
+   - Submission mocked for now
+========================================================= */
 
-/* ---------- Mock Events ---------- */
 const EVENTS = {
   E1: {
     id: "E1",
@@ -24,7 +28,7 @@ const EVENTS = {
     date: "13 Nov 2026",
     time: "4:00 PM IST (Mehendi) • 7:00 PM IST (Sangeet)",
     venue: "Sanskruti Banquet",
-    address: "XR55+25V, Dadi Seth Road, near Hotel Regal Palace, Grant Road West, Khareghat Colony, Malabar Hill, Mumbai, Maharashtra 400007",
+    address: "XR55+25V, Dadi Seth Road, near Hotel Regal Palace, Grant Road West, Mumbai, Maharashtra 400007",
     dress: "Traditional",
     mapsQuery: "Sanskruti Banquet Dadi Seth Road Grant Road West Mumbai"
   },
@@ -34,7 +38,7 @@ const EVENTS = {
     date: "14 Nov 2026",
     time: "4:00 PM IST (Ladies) • 7:00 PM IST (Gents)",
     venue: "Al Saadah Hall",
-    address: "7th Floor, Khara Tank Rd, Bhendi Bazaar, Kumbharwada, Mumbai, Maharashtra 400003",
+    address: "7th Floor, Khara Tank Rd, Bhendi Bazaar, Mumbai, Maharashtra 400003",
     dress: "Bohra Clothes",
     mapsQuery: "Al Saadah Hall Khara Tank Rd Bhendi Bazaar Mumbai"
   },
@@ -44,33 +48,23 @@ const EVENTS = {
     date: "15 Nov 2026",
     time: "7:00 PM IST",
     venue: "Najam Baug",
-    address: "Samantbhai Nanji Marg, Noor Baug, Dongri, Umerkhadi, Mumbai, Maharashtra 400009",
+    address: "Samantbhai Nanji Marg, Noor Baug, Dongri, Mumbai, Maharashtra 400009",
     dress: "Traditional",
     mapsQuery: "Najam Baug Samantbhai Nanji Marg Dongri Mumbai"
   }
 };
 
-/* ---------- Mock Invites (test codes) ---------- */
+/* test codes (replace later with Google Sheet source) */
 const INVITES = {
   "ABC123": { family: "Zariwala Family", maxGuests: 4, allowed: ["E1","E2","E3","E4"] },
   "FAM001": { family: "Jetpurwala Family", maxGuests: 6, allowed: ["E2","E3","E4"] },
   "ONEFUNC": { family: "Friends (Reception Only)", maxGuests: 2, allowed: ["E1"] }
 };
 
-const SESSION_KEY = "wedding_visual_session_v2";
+const SESSION_KEY = "wedding_invite_session_videoStyle_v1";
 
-/* ---------- Helpers ---------- */
 const $ = (sel) => document.querySelector(sel);
 const $$ = (sel) => Array.from(document.querySelectorAll(sel));
-
-function escapeHtml(s){
-  return String(s)
-    .replaceAll("&","&amp;")
-    .replaceAll("<","&lt;")
-    .replaceAll(">","&gt;")
-    .replaceAll('"',"&quot;")
-    .replaceAll("'","&#039;");
-}
 
 function mapsLink(query){
   return `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(query)}`;
@@ -81,7 +75,7 @@ function toast(msg){
   t.textContent = msg;
   t.classList.remove("hidden");
   clearTimeout(toast._t);
-  toast._t = setTimeout(()=> t.classList.add("hidden"), 2600);
+  toast._t = setTimeout(()=> t.classList.add("hidden"), 2400);
 }
 
 function getCodeFromUrl(){
@@ -95,7 +89,6 @@ function setSession(obj){
     expiresAt: Date.now() + 6*60*60*1000
   }));
 }
-
 function getSession(){
   try{
     const raw = localStorage.getItem(SESSION_KEY);
@@ -105,107 +98,110 @@ function getSession(){
     return s;
   }catch{ return null; }
 }
-
 function clearSession(){
   localStorage.removeItem(SESSION_KEY);
 }
 
-/* ---------- UI: Show/Hide ---------- */
-function revealApp(){
+function showLock(msg){
+  $("#app").classList.add("hidden");
+  $("#lockScreen").classList.remove("hidden");
+  $("#lockStatus").textContent = msg || "";
+}
+function showApp(){
   $("#lockScreen").classList.add("hidden");
   $("#app").classList.remove("hidden");
-  $("#app").classList.add("visible");
 }
 
-function showLock(message){
-  $("#app").classList.add("hidden");
-  $("#app").classList.remove("visible");
-  $("#lockScreen").classList.remove("hidden");
-  $("#lockStatus").textContent = message || "";
-}
+/* ---------- bottom nav scroll ---------- */
+function bindNav(){
+  const map = {
+    cover: $("#s-cover"),
+    events: $("#s-events"),
+    rsvp: $("#s-rsvp"),
+    gallery: $("#s-gallery"),
+  };
 
-/* ---------- Routing ---------- */
-function setActiveNav(route){
-  $$(".navlink").forEach(a => {
-    a.classList.toggle("active", a.dataset.route === route);
-  });
-}
-
-function showRoute(route){
-  const routes = ["home","events","rsvp","gallery","contact"];
-  if(!routes.includes(route)) route = "home";
-
-  routes.forEach(r => {
-    const el = $(`#route-${r}`);
-    if(!el) return;
-    el.classList.toggle("hidden", r !== route);
-  });
-
-  setActiveNav(route);
-  window.location.hash = route;
-}
-
-function attachNav(){
-  $$(".navlink").forEach(a => {
-    a.addEventListener("click", (e) => {
-      e.preventDefault();
-      showRoute(a.dataset.route);
+  $$(".bn").forEach(btn => {
+    btn.addEventListener("click", () => {
+      const key = btn.dataset.go;
+      map[key]?.scrollIntoView({behavior:"smooth", block:"start"});
     });
   });
 
-  $$("[data-go]").forEach(btn => {
-    btn.addEventListener("click", () => showRoute(btn.dataset.go));
+  // active state while scrolling
+  const screens = [
+    { id:"cover", el: $("#s-cover") },
+    { id:"events", el: $("#s-events") },
+    { id:"rsvp", el: $("#s-rsvp") },
+    { id:"gallery", el: $("#s-gallery") },
+  ];
+
+  const io = new IntersectionObserver((entries) => {
+    const vis = entries
+      .filter(e => e.isIntersecting)
+      .sort((a,b) => b.intersectionRatio - a.intersectionRatio)[0];
+    if(!vis) return;
+    const found = screens.find(s => s.el === vis.target);
+    if(!found) return;
+    $$(".bn").forEach(b => b.classList.toggle("active", b.dataset.go === found.id));
+  }, { threshold: [0.55, 0.65, 0.75] });
+
+  screens.forEach(s => s.el && io.observe(s.el));
+
+  // buttons inside cover
+  $$("[data-go]").forEach(b => {
+    b.addEventListener("click", () => {
+      const key = b.dataset.go;
+      map[key]?.scrollIntoView({behavior:"smooth", block:"start"});
+    });
   });
 
+  // lock
   $("#lockBtn").addEventListener("click", () => {
     clearSession();
     toast("Locked 🔒");
-    location.hash = "#home";
-    // Show lock with a message that needs link again
     showLock("This invitation is private. Please open using your unique invite link.");
-    // Disable open button until URL has code
     $("#openInviteBtn").disabled = true;
   });
 }
 
-/* ---------- Render Events ---------- */
+/* ---------- render events ---------- */
+function escapeHtml(s){
+  return String(s)
+    .replaceAll("&","&amp;").replaceAll("<","&lt;").replaceAll(">","&gt;")
+    .replaceAll('"',"&quot;").replaceAll("'","&#039;");
+}
+
 function renderEvents(session){
   const list = $("#eventsList");
   list.innerHTML = "";
-
   const allowed = (session.allowed || []).map(id => EVENTS[id]).filter(Boolean);
-  if(!allowed.length){
-    list.innerHTML = `<p class="small">No events are assigned to this invite code.</p>`;
-    return;
-  }
 
   allowed.forEach(ev => {
-    const div = document.createElement("div");
-    div.className = "event fade-in";
-    div.innerHTML = `
-      <h3 class="serif">${escapeHtml(ev.title)}</h3>
+    const card = document.createElement("div");
+    card.className = "card";
+    card.innerHTML = `
+      <h3>${escapeHtml(ev.title)}</h3>
       <div class="meta">
-        <span class="pill">${escapeHtml(ev.date)}</span>
-        <span class="pill">${escapeHtml(ev.time)}</span>
-        <span class="pill">Dress: ${escapeHtml(ev.dress)}</span>
+        <span class="pilltag">${escapeHtml(ev.date)}</span>
+        <span class="pilltag">${escapeHtml(ev.time)}</span>
+        <span class="pilltag">Dress: ${escapeHtml(ev.dress)}</span>
       </div>
-      <div class="hr"></div>
-      <p><b>${escapeHtml(ev.venue)}</b><br/>${escapeHtml(ev.address)}</p>
-      <div class="actions">
-        <a class="btn" target="_blank" rel="noopener" href="${mapsLink(ev.mapsQuery)}">Open in Maps</a>
-        <button class="btn primary" data-go="rsvp">RSVP</button>
+      <div class="addr"><b>${escapeHtml(ev.venue)}</b><br/>${escapeHtml(ev.address)}</div>
+      <div class="row">
+        <a class="pill" target="_blank" rel="noopener" href="${mapsLink(ev.mapsQuery)}">Open maps</a>
+        <button class="pill primary" data-go="rsvp">RSVP</button>
       </div>
     `;
-    list.appendChild(div);
+    list.appendChild(card);
   });
 
-  // Re-bind quick RSVP buttons inside events after render
-  list.querySelectorAll("[data-go='rsvp']").forEach(btn => {
-    btn.addEventListener("click", () => showRoute("rsvp"));
+  list.querySelectorAll("[data-go='rsvp']").forEach(b => {
+    b.addEventListener("click", () => $("#s-rsvp").scrollIntoView({behavior:"smooth"}));
   });
 }
 
-/* ---------- RSVP (visual only) ---------- */
+/* ---------- RSVP ---------- */
 function buildCountOptions(max){
   const cap = Math.max(1, Number(max || 1));
   let html = `<option value="0">Guests: 0</option>`;
@@ -221,27 +217,22 @@ function renderRsvpEvents(session){
   const allowed = (session.allowed || []).map(id => EVENTS[id]).filter(Boolean);
   allowed.forEach(ev => {
     const row = document.createElement("div");
-    row.className = "mini-card";
+    row.className = "ev-row";
     row.innerHTML = `
-      <div style="display:flex; justify-content:space-between; gap:12px; flex-wrap:wrap;">
-        <div>
-          <div class="serif" style="font-size:18px; margin-bottom:4px;">${escapeHtml(ev.title)}</div>
-          <div class="small">${escapeHtml(ev.date)} • ${escapeHtml(ev.time)}</div>
-        </div>
-        <div style="display:flex; gap:10px; align-items:center;">
-          <label class="small" style="display:flex; align-items:center; gap:8px;">
-            <input type="checkbox" class="ev-check" data-ev="${ev.id}"/> Attend
-          </label>
-          <select class="input ev-count" data-ev="${ev.id}" style="width:150px;" disabled>
-            ${buildCountOptions(session.maxGuests)}
-          </select>
-        </div>
+      <div class="ev-left">
+        <div class="ev-title">${escapeHtml(ev.title)}</div>
+        <div class="ev-sub">${escapeHtml(ev.date)} • ${escapeHtml(ev.time)}</div>
+      </div>
+      <div class="ev-right">
+        <input type="checkbox" class="ev-check" data-ev="${ev.id}" aria-label="Attend ${escapeHtml(ev.title)}"/>
+        <select class="ev-count" data-ev="${ev.id}" disabled>
+          ${buildCountOptions(session.maxGuests)}
+        </select>
       </div>
     `;
     wrap.appendChild(row);
   });
 
-  // Toggle counts when checked
   wrap.addEventListener("change", (e) => {
     if(e.target.classList.contains("ev-check")){
       const evId = e.target.getAttribute("data-ev");
@@ -255,39 +246,47 @@ function renderRsvpEvents(session){
   });
 }
 
-function hookRsvpUI(){
-  const attendance = $("#rsvpAttendance");
+function bindAttendanceUI(){
+  const hidden = $("#rsvpAttendance");
   const details = $("#rsvpDetails");
-  const status = $("#rsvpStatus");
+  const help = $("#attHelp");
 
-  function sync(){
-    const v = (attendance.value || "").toLowerCase();
-    if(v === "no"){
+  function setAttendance(v){
+    hidden.value = v;
+    $$(".seg-btn").forEach(b => b.classList.toggle("active", b.dataset.att === v));
+
+    if(v === "No"){
       details.classList.add("hidden");
-      status.textContent = "If you select No, we’ll only record non-attendance (later in Sheets).";
-    } else if(v === "yes" || v === "maybe"){
+      help.textContent = "No worries — we’ll mark you as not attending.";
+    } else if(v === "Yes" || v === "Maybe"){
       details.classList.remove("hidden");
-      status.textContent = "";
+      help.textContent = v === "Maybe" ? "You can update later." : "";
     } else {
       details.classList.add("hidden");
-      status.textContent = "";
+      help.textContent = "";
     }
   }
 
-  attendance.addEventListener("change", sync);
-  sync();
+  $$(".seg-btn").forEach(btn => btn.addEventListener("click", () => setAttendance(btn.dataset.att)));
+  setAttendance(""); // initial
+}
 
+function bindRsvpSave(){
   $("#rsvpSave").addEventListener("click", () => {
+    const name = ($("#rsvpName").value || "").trim();
     const phone = ($("#rsvpPhone").value || "").trim();
     const att = ($("#rsvpAttendance").value || "").trim();
     const meal = ($("#rsvpMeal").value || "").trim();
+    const status = $("#rsvpStatus");
 
-    if(!phone) return toast("Phone is required");
-    if(!att) return toast("Select attendance");
+    status.textContent = "";
 
-    if(att.toLowerCase() === "no"){
-      toast("Saved (mock) ✅ Marked as No");
-      $("#rsvpStatus").textContent = "Saved locally (mock). Backend will be connected later.";
+    if(!phone){ toast("Phone is required"); return; }
+    if(!att){ toast("Select attendance"); return; }
+
+    if(att === "No"){
+      toast("Saved (mock) ✅");
+      status.textContent = "Recorded as Not Attending (mock).";
       return;
     }
 
@@ -296,56 +295,42 @@ function hookRsvpUI(){
     $$("#rsvpEvents .ev-check").forEach(ch => {
       if(!ch.checked) return;
       const evId = ch.dataset.ev;
-      const cntSel = $(`#rsvpEvents .ev-count[data-ev="${evId}"]`);
+      const sel = $(`#rsvpEvents .ev-count[data-ev="${evId}"]`);
       chosen.push(evId);
-      counts.push(`${evId}:${cntSel ? cntSel.value : 0}`);
+      counts.push(`${evId}:${sel ? sel.value : 0}`);
     });
 
-    if(!chosen.length) return toast("Select at least one function");
-    if(!meal) return toast("Select meal preference");
+    if(!chosen.length){ toast("Select at least one function"); return; }
+    if(!meal){ toast("Select meal preference"); return; }
 
     toast("Saved (mock) ✅");
-    $("#rsvpStatus").textContent =
-      `Saved locally (mock): ${att} • ${chosen.join(", ")} • ${counts.join(" | ")} • ${meal}`;
+    status.textContent = `Saved (mock): ${name || "Guest"} • ${att} • ${counts.join(" | ")} • ${meal}`;
   });
 }
 
-/* ---------- Core: Boot App ---------- */
-function boot(){
-  const session = getSession();
-  if(!session) return;
-
-  $("#familyBadge").textContent = session.family || "Invite";
-  $("#codeBadge").textContent = `Code: ${session.code}`;
-  $("#welcomeLine").textContent = `Hi ${session.family || "there"}, we can’t wait to celebrate with you.`;
-
-  attachNav();
+/* ---------- boot ---------- */
+function boot(session){
   renderEvents(session);
   renderRsvpEvents(session);
-  hookRsvpUI();
-
-  const route = (window.location.hash || "#home").replace("#","");
-  showRoute(route);
+  bindNav();
+  bindAttendanceUI();
+  bindRsvpSave();
 }
 
-/* ---------- Unlock Flow (URL code only) ---------- */
+/* ---------- unlock flow ---------- */
 async function openAndValidate(code){
   const status = $("#lockStatus");
-  const env = $("#envelope");
   const btn = $("#openInviteBtn");
-
   status.textContent = "";
   btn.disabled = true;
 
-  // Open envelope
-  env.classList.add("open");
-
-  // Wait for animation
-  await new Promise(r => setTimeout(r, 900));
+  // tiny "video-like" delay (feels intentional)
+  status.textContent = "Opening…";
+  await new Promise(r => setTimeout(r, 420));
 
   status.textContent = "Validating invite…";
+  await new Promise(r => setTimeout(r, 320));
 
-  // Validate (mock DB for visualization)
   const invite = INVITES[code];
   if(!invite){
     status.textContent = "Invalid link. Please use the invite link shared with you.";
@@ -353,19 +338,19 @@ async function openAndValidate(code){
     return;
   }
 
-  setSession({
+  const session = {
     code,
     family: invite.family,
     maxGuests: invite.maxGuests,
     allowed: invite.allowed
-  });
+  };
+  setSession(session);
 
-  revealApp();
+  showApp();
   toast("Welcome ✨");
-  boot();
+  boot(session);
 
-  // Optional: reduce accidental sharing by removing ?code from address bar
-  // (Keeps the session active; user can still refresh without code for 6 hours)
+  // remove ?code from address bar to reduce accidental sharing
   try{
     const cleanUrl = new URL(window.location.href);
     cleanUrl.searchParams.delete("code");
@@ -373,16 +358,14 @@ async function openAndValidate(code){
   }catch{}
 }
 
-/* ---------- Init ---------- */
 window.addEventListener("load", () => {
   const existing = getSession();
   if(existing){
-    revealApp();
-    boot();
+    showApp();
+    boot(existing);
     return;
   }
 
-  // Must have code in URL
   const code = getCodeFromUrl();
   const status = $("#lockStatus");
   const btn = $("#openInviteBtn");
@@ -393,8 +376,7 @@ window.addEventListener("load", () => {
     return;
   }
 
-  status.textContent = "Ready to open ✉️";
+  status.textContent = "Ready.";
   btn.disabled = false;
-
   btn.addEventListener("click", () => openAndValidate(code), { once: true });
 });
