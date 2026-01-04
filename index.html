@@ -1,0 +1,214 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8"/>
+  <meta name="viewport" content="width=device-width,initial-scale=1"/>
+  <title>Lubna & Murtaza • Private Invitation</title>
+  <meta name="theme-color" content="#f7e9f1"/>
+  <link rel="stylesheet" href="style.css"/>
+</head>
+<body>
+  <!-- LOCK SCREEN -->
+  <main id="lockScreen" class="page lock">
+    <div class="container">
+      <header class="topline">
+        <div class="mark">L ✦ M</div>
+        <div class="tiny">Private invitation • Please don’t share</div>
+      </header>
+
+      <section class="card hero fade-in">
+        <h1 class="title">
+          <span class="serif">Lubna</span>
+          <span class="amp">&</span>
+          <span class="serif">Murtaza</span>
+        </h1>
+        <p class="subtitle">Pune • Mumbai • India</p>
+
+        <div class="envelope-wrap">
+          <div id="envelope" class="envelope" aria-hidden="true">
+            <div class="env-body"></div>
+            <div class="env-flap"></div>
+            <div class="env-letter"></div>
+            <div class="env-shadow"></div>
+          </div>
+        </div>
+
+        <div class="hr"></div>
+
+        <p class="small">
+          Open using your unique link (recommended), or enter your invite code.
+        </p>
+
+        <div class="row">
+          <input id="codeInput" class="input" placeholder="Invite code (e.g., ABC123)" />
+          <button id="unlockBtn" class="btn primary">Unlock</button>
+        </div>
+
+        <p id="lockStatus" class="small status"></p>
+      </section>
+
+      <footer class="footer">Made with love • 2026</footer>
+    </div>
+  </main>
+
+  <!-- APP (HIDDEN UNTIL UNLOCK) -->
+  <main id="app" class="page hidden">
+    <div class="container">
+      <nav class="nav">
+        <div class="nav-left">
+          <div class="badge" id="familyBadge">Invite</div>
+          <div class="tiny" id="codeBadge"></div>
+        </div>
+
+        <div class="nav-links">
+          <a href="#home" class="navlink active" data-route="home">Home</a>
+          <a href="#events" class="navlink" data-route="events">Events</a>
+          <a href="#rsvp" class="navlink" data-route="rsvp">RSVP</a>
+          <a href="#gallery" class="navlink" data-route="gallery">Gallery</a>
+          <a href="#contact" class="navlink" data-route="contact">Contact</a>
+          <button id="lockBtn" class="chip">Lock</button>
+        </div>
+      </nav>
+
+      <!-- HOME -->
+      <section id="route-home" class="card route fade-in">
+        <h2 class="serif">Welcome ✨</h2>
+        <p id="welcomeLine" class="subtitle2"></p>
+
+        <div class="hr"></div>
+
+        <div class="grid2">
+          <div class="mini-card">
+            <h3 class="serif">Our Story</h3>
+            <p>
+              A short, warm story section goes here — modern, minimal, and sweet.
+              We’ll replace it with your final copy later.
+            </p>
+          </div>
+          <div class="mini-card">
+            <h3 class="serif">Quick Links</h3>
+            <div class="stack">
+              <button class="btn" data-go="events">View Your Events</button>
+              <button class="btn primary" data-go="rsvp">RSVP Now</button>
+            </div>
+          </div>
+        </div>
+
+        <div class="note">
+          <span class="spark">✦</span>
+          This is a private invite. Details shown are specific to your invitation.
+        </div>
+      </section>
+
+      <!-- EVENTS -->
+      <section id="route-events" class="card route hidden">
+        <div class="route-head">
+          <div>
+            <h2 class="serif">Your Events</h2>
+            <p class="subtitle2">Only the functions you’re invited to are shown below.</p>
+          </div>
+          <button class="btn" data-go="rsvp">RSVP</button>
+        </div>
+        <div class="hr"></div>
+        <div id="eventsList" class="events"></div>
+      </section>
+
+      <!-- RSVP -->
+      <section id="route-rsvp" class="card route hidden">
+        <h2 class="serif">RSVP</h2>
+        <p class="subtitle2">Visualization prototype — save action is mocked for now.</p>
+
+        <div class="hr"></div>
+
+        <div class="grid2">
+          <div>
+            <label class="label">Name</label>
+            <input id="rsvpName" class="input" placeholder="Your full name"/>
+          </div>
+          <div>
+            <label class="label">Phone</label>
+            <input id="rsvpPhone" class="input" placeholder="+91XXXXXXXXXX"/>
+          </div>
+        </div>
+
+        <div class="spacer"></div>
+
+        <label class="label">Attendance</label>
+        <select id="rsvpAttendance" class="input">
+          <option value="">Select</option>
+          <option>Yes</option>
+          <option>Maybe</option>
+          <option>No</option>
+        </select>
+
+        <div id="rsvpDetails" class="hidden">
+          <div class="hr"></div>
+
+          <h3 class="serif">Functions</h3>
+          <p class="small">Select functions you’ll attend and guest count per function (max per function: <span id="maxGuests"></span>).</p>
+
+          <div id="rsvpEvents" class="stack"></div>
+
+          <div class="hr"></div>
+
+          <label class="label">Meal Preference</label>
+          <select id="rsvpMeal" class="input">
+            <option value="">Select</option>
+            <option>Veg</option>
+            <option>Non-veg</option>
+          </select>
+        </div>
+
+        <div class="hr"></div>
+
+        <div class="row">
+          <button id="rsvpSave" class="btn primary">Save RSVP</button>
+          <div id="rsvpStatus" class="small status"></div>
+        </div>
+      </section>
+
+      <!-- GALLERY -->
+      <section id="route-gallery" class="card route hidden">
+        <h2 class="serif">Gallery</h2>
+        <p class="subtitle2">Placeholders for now — we’ll plug in photos later.</p>
+        <div class="hr"></div>
+        <div class="gallery">
+          <div class="ph">Photo placeholder</div>
+          <div class="ph">Photo placeholder</div>
+          <div class="ph">Photo placeholder</div>
+          <div class="ph">Photo placeholder</div>
+          <div class="ph">Photo placeholder</div>
+          <div class="ph">Photo placeholder</div>
+        </div>
+      </section>
+
+      <!-- CONTACT -->
+      <section id="route-contact" class="card route hidden">
+        <h2 class="serif">Contact</h2>
+        <p class="subtitle2">We’ll add WhatsApp numbers later. Keeping placeholders for now.</p>
+        <div class="hr"></div>
+
+        <div class="grid2">
+          <div class="mini-card">
+            <h3 class="serif">Contact 1</h3>
+            <p class="small">WhatsApp: (add later)</p>
+            <button class="btn" disabled>Message on WhatsApp</button>
+          </div>
+          <div class="mini-card">
+            <h3 class="serif">Contact 2</h3>
+            <p class="small">WhatsApp: (add later)</p>
+            <button class="btn" disabled>Message on WhatsApp</button>
+          </div>
+        </div>
+      </section>
+
+      <footer class="footer">Private invitation • Please don’t share</footer>
+    </div>
+  </main>
+
+  <!-- TOAST -->
+  <div id="toast" class="toast hidden"></div>
+
+  <script src="app.js"></script>
+</body>
+</html>
