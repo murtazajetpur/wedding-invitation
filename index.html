@@ -1,210 +1,141 @@
 <!doctype html>
 <html lang="en">
 <head>
-  <meta charset="utf-8"/>
-  <meta name="viewport" content="width=device-width,initial-scale=1"/>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
   <title>Lubna & Murtaza • Wedding Invitation</title>
-  <meta name="theme-color" content="#eaf5f2"/>
-  <link rel="stylesheet" href="style.css"/>
+  <meta name="theme-color" content="#eaf5f2" />
+  <link rel="stylesheet" href="style.css" />
 </head>
+
 <body>
-
-  <!-- LOCK SCREEN (FULL PRIVATE) -->
-  <main id="lockScreen" class="lock">
-    <div class="lock-shell">
-      <div id="lockCard" class="lock-card">
-        <div class="lock-top">
-          <div class="monogram">L <span class="dot">•</span> M</div>
-          <div class="lock-note">Private invitation</div>
-        </div>
-
-        <div class="lock-hero">
-          <div class="lock-illo" aria-hidden="true">
-            <!-- inline SVG illustration placeholder -->
-            <svg viewBox="0 0 900 520" role="presentation">
-              <defs>
-                <linearGradient id="wash" x1="0" x2="1" y1="0" y2="1">
-                  <stop offset="0" stop-color="#f7d7e7" stop-opacity=".9"/>
-                  <stop offset=".45" stop-color="#d9d2ff" stop-opacity=".85"/>
-                  <stop offset="1" stop-color="#bfe9e3" stop-opacity=".9"/>
-                </linearGradient>
-                <filter id="blur">
-                  <feGaussianBlur stdDeviation="18" />
-                </filter>
-              </defs>
-              <rect width="900" height="520" fill="#f9fbff"/>
-              <g filter="url(#blur)" opacity=".7">
-                <circle cx="200" cy="170" r="140" fill="url(#wash)"/>
-                <circle cx="640" cy="190" r="180" fill="url(#wash)"/>
-                <circle cx="470" cy="360" r="220" fill="url(#wash)"/>
-              </g>
-              <g opacity=".35">
-                <path d="M120,380 C220,310 290,310 360,380 C430,450 520,460 620,390 C720,320 790,320 860,380" fill="none" stroke="#8aa3b5" stroke-width="4" stroke-linecap="round"/>
-                <path d="M100,120 C210,190 280,190 360,130 C440,70 530,60 630,130 C730,200 800,200 880,140" fill="none" stroke="#b58aa4" stroke-width="4" stroke-linecap="round"/>
-              </g>
-              <g opacity=".8">
-                <text x="450" y="275" text-anchor="middle" font-size="42" font-family="Georgia,serif" fill="#23303a">You’re invited</text>
-                <text x="450" y="322" text-anchor="middle" font-size="18" font-family="system-ui, -apple-system, Segoe UI, Roboto, Arial" fill="#52606d">
-                  Tap to open your private invitation
-                </text>
-              </g>
-            </svg>
-          </div>
-
-          <div class="lock-gradient">
-            <div class="names">
-              <div class="name-serif">Lubna Zariwala</div>
-              <div class="amp">&</div>
-              <div class="name-serif">Murtaza Jetpurwala</div>
-            </div>
-
-            <button id="openInviteBtn" class="open-btn" disabled>
-              Open invitation
-            </button>
-
-            <div id="lockStatus" class="lock-status"></div>
-
-            <div class="lock-swipe" aria-hidden="true">
-              <span class="sw-dot"></span><span class="sw-dot"></span><span class="sw-dot"></span>
-              <span class="sw-text">Swipe ↓</span>
-            </div>
-          </div>
-        </div>
-
-        <div class="lock-foot">
-          <span>@AskYourLoveDaily</span>
-        </div>
+  <!-- FULL LOCK (invite-only via URL param) -->
+  <main id="lock" class="lock">
+    <div class="lock-card">
+      <div class="lock-top">
+        <div class="mono">L • M</div>
+        <div class="note">Private invitation</div>
       </div>
+
+      <div class="lock-mid">
+        <h1 class="lock-title">Lubna Zariwala <span>&</span> Murtaza Jetpurwala</h1>
+        <p class="lock-sub">Please open using your unique invite link.</p>
+        <p id="lockStatus" class="lock-status"></p>
+      </div>
+
+      <div class="lock-foot">@AskYourLoveDaily</div>
     </div>
   </main>
 
-  <!-- APP (HIDDEN UNTIL VALIDATED) -->
+  <!-- APP -->
   <main id="app" class="app hidden">
-    <nav class="bottom-nav">
-      <button class="bn active" data-go="cover">Home</button>
-      <button class="bn" data-go="events">Events</button>
-      <button class="bn" data-go="rsvp">RSVP</button>
-      <button class="bn" data-go="gallery">Gallery</button>
-    </nav>
 
-    <section id="s-cover" class="screen snap">
-      <div class="cover-top reveal">
-        <div class="cover-art" aria-hidden="true">
-          <div class="art-frame">
-            <div class="art-bloom b1"></div>
-            <div class="art-bloom b2"></div>
-            <div class="art-bloom b3"></div>
-            <div class="art-lines"></div>
-            <div class="art-title">Our Wedding</div>
-          </div>
-        </div>
+    <!-- HERO GATE -->
+    <section id="hero" class="hero">
+      <div class="hero-bg">
+        <div class="blob b1"></div>
+        <div class="blob b2"></div>
+        <div class="blob b3"></div>
       </div>
 
-      <div class="cover-bottom reveal">
-        <div class="cover-names">
-          <div class="cover-serif">Lubna</div>
-          <div class="cover-amp">&</div>
-          <div class="cover-serif">Murtaza</div>
-        </div>
+      <div class="hero-shell">
 
-        <div class="cover-sub">Pune • Mumbai • November 2026</div>
-
-        <div class="cover-actions">
-          <button class="pill" data-go="events">See your events</button>
-          <button class="pill primary" data-go="rsvp">Confirm attendance</button>
-        </div>
-
-        <div class="swipe-hint" aria-hidden="true">
-          <span class="chev">⌄</span>
-          <span class="chev">⌄</span>
-          <span class="chev">⌄</span>
-        </div>
-      </div>
-    </section>
-
-    <section id="s-events" class="screen snap">
-      <header class="screen-head reveal">
-        <div>
-          <h2 class="h-serif">Your events</h2>
-          <p class="muted">Only the functions you’re invited to are visible.</p>
-        </div>
-        <button class="linklike" id="lockBtn">Lock</button>
-      </header>
-
-      <div id="eventsList" class="cards"></div>
-    </section>
-
-    <section id="s-rsvp" class="screen snap">
-      <header class="screen-head reveal">
-        <div>
-          <h2 class="h-serif">RSVP</h2>
-          <p class="muted">Simple & clean — (Submission is mocked for now)</p>
-        </div>
-      </header>
-
-      <div class="form reveal">
-        <div class="field">
-          <label>Name</label>
-          <input id="rsvpName" placeholder="Your name"/>
-        </div>
-
-        <div class="field">
-          <label>Phone</label>
-          <input id="rsvpPhone" placeholder="+91XXXXXXXXXX"/>
-        </div>
-
-        <div class="field">
-          <label>Attendance</label>
-          <div class="seg">
-            <button class="seg-btn" data-att="Yes">Yes</button>
-            <button class="seg-btn" data-att="Maybe">Maybe</button>
-            <button class="seg-btn" data-att="No">No</button>
+        <!-- Title -->
+        <div class="hero-heading">
+          <div class="kicker">You’re invited</div>
+          <div class="names">
+            <span class="serif">Lubna</span>
+            <span class="amp">&</span>
+            <span class="serif">Murtaza</span>
           </div>
-          <input id="rsvpAttendance" type="hidden" value=""/>
-          <div class="small" id="attHelp"></div>
+          <div class="sub">Pune • Mumbai • November 2026</div>
         </div>
 
-        <div id="rsvpDetails" class="details hidden">
-          <div class="divider"></div>
+        <!-- Envelope Scene -->
+        <div class="scene" aria-label="Invitation envelope">
+          <div class="shadow"></div>
 
-          <div class="field">
-            <label>Select functions + guest count (max per function: <span id="maxGuests"></span>)</label>
-            <div id="rsvpEvents" class="stack"></div>
+          <div class="env">
+            <!-- back plate -->
+            <div class="env-back"></div>
+
+            <!-- card that comes out -->
+            <div class="card">
+              <div class="card-inner">
+                <div class="card-title serif">Our Wedding</div>
+                <div class="card-line"></div>
+                <div class="card-meta">
+                  <div>Invite-only</div>
+                  <div class="muted">Scroll to open</div>
+                </div>
+              </div>
+            </div>
+
+            <!-- front -->
+            <div class="env-front"></div>
+
+            <!-- flap -->
+            <div class="flap"></div>
+
+            <!-- center icon/button -->
+            <button id="openBtn" class="seal" type="button" aria-label="Open invitation">
+              <span class="seal-dot"></span>
+            </button>
           </div>
 
-          <div class="field">
-            <label>Meal preference</label>
-            <select id="rsvpMeal">
-              <option value="">Select</option>
-              <option>Veg</option>
-              <option>Non-veg</option>
-            </select>
+          <div class="hint">
+            <div class="dots"><span></span><span></span><span></span></div>
+            <div class="hint-text">Scroll ↓ to open</div>
           </div>
         </div>
 
-        <button id="rsvpSave" class="pill big primary">Send confirmation</button>
-        <div id="rsvpStatus" class="small"></div>
       </div>
     </section>
 
-    <section id="s-gallery" class="screen snap">
-      <header class="screen-head reveal">
-        <div>
-          <h2 class="h-serif">Gallery</h2>
-          <p class="muted">We’ll plug photos here later.</p>
+    <!-- CONTENT START (snap target) -->
+    <section id="contentStart" class="section">
+      <div class="container">
+        <h2 class="h serif">Welcome</h2>
+        <p class="p">This is where your site begins after the envelope opens and snaps.</p>
+
+        <div class="cards">
+          <div class="cardbox">
+            <div class="cardbox-title serif">Events</div>
+            <div class="cardbox-sub">Only invited functions will be visible (next step).</div>
+          </div>
+          <div class="cardbox">
+            <div class="cardbox-title serif">RSVP</div>
+            <div class="cardbox-sub">Invite-code based, per-event guest count (next step).</div>
+          </div>
+          <div class="cardbox">
+            <div class="cardbox-title serif">Gallery</div>
+            <div class="cardbox-sub">We’ll plug your photos later.</div>
+          </div>
         </div>
-      </header>
-
-      <div class="gallery reveal">
-        <div class="ph">Photo</div><div class="ph">Photo</div><div class="ph">Photo</div>
-        <div class="ph">Photo</div><div class="ph">Photo</div><div class="ph">Photo</div>
       </div>
-
-      <footer class="footer">@AskYourLoveDaily</footer>
+      <div class="footer">@AskYourLoveDaily</div>
     </section>
 
-    <div id="toast" class="toast hidden"></div>
+    <!-- More sections (placeholders) -->
+    <section class="section alt">
+      <div class="container">
+        <h2 class="h serif">Events</h2>
+        <p class="p">Placeholder section.</p>
+      </div>
+    </section>
+
+    <section class="section">
+      <div class="container">
+        <h2 class="h serif">RSVP</h2>
+        <p class="p">Placeholder section.</p>
+      </div>
+    </section>
+
   </main>
+
+  <!-- GSAP (CDN) -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.5/gsap.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.5/ScrollTrigger.min.js"></script>
 
   <script src="app.js"></script>
 </body>
