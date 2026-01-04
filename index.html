@@ -8,11 +8,11 @@
   <link rel="stylesheet" href="style.css"/>
 </head>
 <body>
-  <!-- LOCK SCREEN -->
+  <!-- LOCK SCREEN (FULL PRIVATE) -->
   <main id="lockScreen" class="page lock">
     <div class="container">
       <header class="topline">
-        <div class="mark">L ✦ M</div>
+        <div class="mark serif">L ✦ M</div>
         <div class="tiny">Private invitation • Please don’t share</div>
       </header>
 
@@ -33,25 +33,18 @@
           </div>
         </div>
 
-        <div class="hr"></div>
+        <button id="openInviteBtn" class="btn primary open-btn" disabled>
+          ✉️ Open Invitation
+        </button>
 
-        <p class="small">
-          Open using your unique link (recommended), or enter your invite code.
-        </p>
-
-        <div class="row">
-          <input id="codeInput" class="input" placeholder="Invite code (e.g., ABC123)" />
-          <button id="unlockBtn" class="btn primary">Unlock</button>
-        </div>
-
-        <p id="lockStatus" class="small status"></p>
+        <p id="lockStatus" class="small status" style="margin-top:10px;"></p>
       </section>
 
       <footer class="footer">Made with love • 2026</footer>
     </div>
   </main>
 
-  <!-- APP (HIDDEN UNTIL UNLOCK) -->
+  <!-- WEBSITE APP (HIDDEN UNTIL VALIDATED) -->
   <main id="app" class="page hidden">
     <div class="container">
       <nav class="nav">
